@@ -1,0 +1,384 @@
+@page "/incident-form"
+@page "/incident-form/{IncidentId:int}"
+@using HseHackathon.Entities
+@using HseHackathon.Services
+@using System.ComponentModel.DataAnnotations
+@inject IncidentService IncidentService
+@inject IncidentTypeService IncidentTypeService
+@inject FileUploadService FileUploadService
+@inject NavigationManager NavigationManager
+
+<div class="container py-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="bi bi-plus-circle"></i> 
+                        @(isEditing ? "Edit Incident Report" : "New Incident Report")
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (!string.IsNullOrEmpty(successMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle"></i> @successMessage
+                            <button type="button" class="btn-close" @onclick="() => successMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(errorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle"></i> @errorMessage
+                            <button type="button" class="btn-close" @onclick="() => errorMessage = string.Empty"></button>
+                        </div>
+                    }
+
+                    <EditForm Model="formModel" OnValidSubmit="HandleFormSubmit" FormName="incidentForm">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary Class="text-danger small" />
+                        <!-- Date and Time -->
+                        <div class="mb-3">
+                            <label for="dateTime" class="form-label">
+                                <i class="bi bi-calendar-event"></i> Date & Time <span class="text-danger">*</span>
+                            </label>
+                            <InputDateTime id="dateTime" class="form-control" 
+                                    @bind-value="formModel.DateTimeReported" />
+                            <ValidationMessage For="() => formModel.DateTimeReported" class="text-danger small" />
+                        </div>
+
+                        <!-- Location -->
+                        <div class="mb-3">
+                            <label for="location" class="form-label">
+                                <i class="bi bi-geo-alt"></i> Location <span class="text-danger">*</span>
+                            </label>
+                            <InputText id="location" class="form-control" placeholder="e.g., Warehouse, Building A, Floor 2"
+                                @bind-Value="formModel.Location" />
+                            <ValidationMessage For="() => formModel.Location" class="text-danger small" />
+                        </div>
+
+                        <!-- Incident Type -->
+                        <div class="mb-3">
+                            <label for="incidentType" class="form-label">
+                                <i class="bi bi-exclamation-triangle"></i> Incident Type <span class="text-danger">*</span>
+                            </label>
+                            <InputSelect id="incidentType" class="form-select"
+                                @bind-Value="formModel.IncidentTypeId">
+                                <option value="0" disabled>-- Select an incident type --</option>
+                                @foreach (var type in incidentTypes)
+                                {
+                                    <option value="@type.Id">@type.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="() => formModel.IncidentTypeId" class="text-danger small" />
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="description" class="form-label">
+                                <i class="bi bi-card-text"></i> Description <span class="text-danger">*</span>
+                            </label>
+                            <InputTextArea id="description" class="form-control" rows="5" 
+                                placeholder="Please provide a detailed description of the incident or near miss..."
+                                @bind-Value="formModel.Description" />
+                            <small class="text-muted">@formModel.Description?.Length ?? 0 / 1000 characters</small>
+                            <ValidationMessage For="() => formModel.Description" class="text-danger small d-block" />
+                        </div>
+
+                        <!-- Photo Upload -->
+                        <div class="mb-3">
+                            <label for="photo" class="form-label">
+                                <i class="bi bi-image"></i> Photo (Optional)
+                            </label>
+                            <div class="input-group">
+                                <InputFile id="photo" class="form-control" accept="image/*"
+                                    OnChange="HandleFileSelected" />
+                            </div>
+                            <small class="text-muted">Accepted formats: JPG, PNG, GIF (Max 10 MB)</small>
+
+                            @if (!string.IsNullOrEmpty(photoPreview))
+                            {
+                                <div class="mt-3">
+                                    <div class="card">
+                                        <div class="card-body text-center">
+                                            <img src="@photoPreview" alt="Preview" class="img-fluid" style="max-height: 300px;" />
+                                            <button type="button" class="btn btn-sm btn-danger mt-2" @onclick="ClearPhoto">
+                                                <i class="bi bi-trash"></i> Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            @if (!string.IsNullOrEmpty(fileUploadError))
+                            {
+                                <div class="alert alert-warning mt-2 mb-0">
+                                    <small>@fileUploadError</small>
+                                </div>
+                            }
+                        </div>
+
+                        <!-- Form Actions -->
+                        <div class="d-flex gap-2 justify-content-between">
+                            <div>
+                                <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                                    @if (isSubmitting)
+                                    {
+                                        <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                                        <span>Saving...</span>
+                                    }
+                                    else
+                                    {
+                                        <span><i class="bi bi-check-circle"></i> @(isEditing ? "Update Report" : "Save as Draft")</span>
+                                    }
+                                </button>
+                                <button type="button" class="btn btn-success ms-2" disabled="@isSubmitting" @onclick="HandleSubmitAndPublish">
+                                    <i class="bi bi-upload"></i> Submit Report
+                                </button>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary" @onclick="GoBack" disabled="@isSubmitting">
+                                <i class="bi bi-arrow-left"></i> Cancel
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+
+            <!-- Help Section -->
+            <div class="alert alert-info mt-4">
+                <h6><i class="bi bi-lightbulb"></i> Tips for completing this form:</h6>
+                <ul class="mb-0">
+                    <li>Be as specific as possible with the location and description</li>
+                    <li>Include what happened, who was involved (if applicable), and any potential risks</li>
+                    <li>Attach photos if they help clarify the situation</li>
+                    <li>You can save as draft and submit later, or submit immediately</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public int IncidentId { get; set; }
+
+    private IncidentFormModel formModel = new();
+    private List<IncidentType> incidentTypes = new();
+    private bool isLoading = true;
+    private bool isSubmitting = false;
+    private bool isEditing = false;
+    private string successMessage = string.Empty;
+    private string errorMessage = string.Empty;
+    private string fileUploadError = string.Empty;
+    private string photoPreview = string.Empty;
+    private IBrowserFile? selectedFile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            incidentTypes = await IncidentTypeService.GetAllIncidentTypesAsync();
+
+            if (IncidentId > 0)
+            {
+                isEditing = true;
+                var incident = await IncidentService.GetIncidentByIdAsync(IncidentId);
+                if (incident != null)
+                {
+                    formModel = new IncidentFormModel
+                    {
+                        DateTimeReported = incident.DateTimeReported,
+                        Location = incident.Location,
+                        IncidentTypeId = incident.IncidentTypeId,
+                        Description = incident.Description,
+                        PhotoUrl = incident.PhotoUrl
+                    };
+
+                    if (!string.IsNullOrEmpty(incident.PhotoUrl))
+                    {
+                        photoPreview = incident.PhotoUrl;
+                    }
+                }
+                else
+                {
+                    errorMessage = "Incident not found";
+                }
+            }
+            else
+            {
+                formModel.DateTimeReported = DateTime.Now;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error loading form: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleSubmit()
+    {
+        await SubmitIncident(false);
+    }
+
+    private async Task HandleSubmitAndPublish()
+    {
+        await SubmitIncident(true);
+    }
+
+    private async Task HandleFormSubmit()
+    {
+        await SubmitIncident(false);
+    }
+
+    private async Task SubmitIncident(bool publishImmediately)
+    {
+        try
+        {
+            isSubmitting = true;
+            errorMessage = string.Empty;
+            successMessage = string.Empty;
+
+            // Create or update incident
+            var incident = new Incident
+            {
+                DateTimeReported = formModel.DateTimeReported,
+                Location = formModel.Location,
+                IncidentTypeId = formModel.IncidentTypeId,
+                Description = formModel.Description,
+                PhotoUrl = photoPreview,
+                ReportedByUserId = Guid.NewGuid(), // TODO: Use actual current user
+                Status = publishImmediately ? IncidentStatus.Submitted : IncidentStatus.Draft
+            };
+
+            if (isEditing && IncidentId > 0)
+            {
+                var existingIncident = await IncidentService.GetIncidentByIdAsync(IncidentId);
+                if (existingIncident != null)
+                {
+                    existingIncident.DateTimeReported = formModel.DateTimeReported;
+                    existingIncident.Location = formModel.Location;
+                    existingIncident.IncidentTypeId = formModel.IncidentTypeId;
+                    existingIncident.Description = formModel.Description;
+                    existingIncident.PhotoUrl = photoPreview;
+                    existingIncident.Status = publishImmediately ? IncidentStatus.Submitted : IncidentStatus.Draft;
+
+                    await IncidentService.UpdateIncidentAsync(existingIncident);
+                }
+            }
+            else
+            {
+                await IncidentService.CreateIncidentAsync(incident);
+            }
+
+            successMessage = publishImmediately ? 
+                "Incident report submitted successfully!" : 
+                "Incident report saved as draft!";
+
+            await Task.Delay(1500); // Show success message briefly
+            NavigationManager.NavigateTo("/");
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error saving incident: {ex.Message}";
+        }
+        finally
+        {
+            isSubmitting = false;
+        }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            fileUploadError = string.Empty;
+            selectedFile = e.File;
+
+            if (selectedFile != null)
+            {
+                // Validate file on client side
+                var validationError = ValidateFile(selectedFile);
+                if (!string.IsNullOrEmpty(validationError))
+                {
+                    fileUploadError = validationError;
+                    selectedFile = null;
+                    return;
+                }
+
+                // Create preview
+                var buffer = new byte[selectedFile.Size];
+                await selectedFile.OpenReadStream(10 * 1024 * 1024).ReadAsync(buffer);
+                var base64 = Convert.ToBase64String(buffer);
+                photoPreview = $"data:{selectedFile.ContentType};base64,{base64}";
+
+                // Upload file
+                var result = await FileUploadService.UploadFileAsync(selectedFile);
+                if (result.Success)
+                {
+                    formModel.PhotoUrl = result.FilePath;
+                }
+                else
+                {
+                    fileUploadError = result.ErrorMessage ?? "Error uploading file";
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            fileUploadError = $"Error processing file: {ex.Message}";
+        }
+    }
+
+    private string? ValidateFile(IBrowserFile file)
+    {
+        const long maxFileSize = 10 * 1024 * 1024; // 10 MB
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif" };
+
+        if (file.Size > maxFileSize)
+            return $"File size exceeds maximum allowed size of 10 MB";
+
+        var fileExtension = System.IO.Path.GetExtension(file.Name).ToLower();
+        if (!allowedExtensions.Contains(fileExtension))
+            return "Only image files (.jpg, .jpeg, .png, .gif) are allowed";
+
+        return null;
+    }
+
+    private void ClearPhoto()
+    {
+        photoPreview = string.Empty;
+        formModel.PhotoUrl = string.Empty;
+        selectedFile = null;
+        fileUploadError = string.Empty;
+    }
+
+    private void GoBack()
+    {
+        NavigationManager.NavigateTo("/");
+    }
+
+    public class IncidentFormModel
+    {
+        [Required(ErrorMessage = "Date and time is required")]
+        public DateTime DateTimeReported { get; set; } = DateTime.Now;
+
+        [Required(ErrorMessage = "Location is required")]
+        [StringLength(255, MinimumLength = 3, ErrorMessage = "Location must be between 3 and 255 characters")]
+        public string Location { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Incident type is required")]
+        [Range(1, int.MaxValue, ErrorMessage = "Please select an incident type")]
+        public int IncidentTypeId { get; set; }
+
+        [Required(ErrorMessage = "Description is required")]
+        [StringLength(1000, MinimumLength = 10, ErrorMessage = "Description must be between 10 and 1000 characters")]
+        public string Description { get; set; } = string.Empty;
+
+        public string? PhotoUrl { get; set; }
+    }
+}
