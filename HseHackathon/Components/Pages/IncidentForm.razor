@@ -43,8 +43,8 @@
                             <label for="dateTime" class="form-label">
                                 <i class="bi bi-calendar-event"></i> Date & Time <span class="text-danger">*</span>
                             </label>
-                            <InputDateTime id="dateTime" class="form-control" 
-                                    @bind-value="formModel.DateTimeReported" />
+                            <InputDate id="dateTime" class="form-control" Type="InputDateType.DateTimeLocal"
+                                    @bind-Value="formModel.DateTimeReported" />
                             <ValidationMessage For="() => formModel.DateTimeReported" class="text-danger small" />
                         </div>
 
@@ -58,20 +58,18 @@
                             <ValidationMessage For="() => formModel.Location" class="text-danger small" />
                         </div>
 
-                        <!-- Incident Type -->
+                        <!-- Incident Type (optional) -->
                         <div class="mb-3">
                             <label for="incidentType" class="form-label">
-                                <i class="bi bi-exclamation-triangle"></i> Incident Type <span class="text-danger">*</span>
+                                <i class="bi bi-exclamation-triangle"></i> Incident Type <span class="text-muted">(optional)</span>
                             </label>
-                            <InputSelect id="incidentType" class="form-select"
-                                @bind-Value="formModel.IncidentTypeId">
-                                <option value="0" disabled>-- Select an incident type --</option>
+                            <InputSelect id="incidentType" class="form-select" TValue="int?" @bind-Value="formModel.IncidentTypeId">
+                                <option value="">-- No selection --</option>
                                 @foreach (var type in incidentTypes)
                                 {
                                     <option value="@type.Id">@type.Name</option>
                                 }
                             </InputSelect>
-                            <ValidationMessage For="() => formModel.IncidentTypeId" class="text-danger small" />
                         </div>
 
                         <!-- Description -->
@@ -208,6 +206,8 @@
             else
             {
                 formModel.DateTimeReported = DateTime.Now;
+                formModel.Location = "test";
+                formModel.Description = "test description";
             }
         }
         catch (Exception ex)
@@ -251,7 +251,6 @@
                 IncidentTypeId = formModel.IncidentTypeId,
                 Description = formModel.Description,
                 PhotoUrl = photoPreview,
-                ReportedByUserId = Guid.NewGuid(), // TODO: Use actual current user
                 Status = publishImmediately ? IncidentStatus.Submitted : IncidentStatus.Draft
             };
 
@@ -371,9 +370,7 @@
         [StringLength(255, MinimumLength = 3, ErrorMessage = "Location must be between 3 and 255 characters")]
         public string Location { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Incident type is required")]
-        [Range(1, int.MaxValue, ErrorMessage = "Please select an incident type")]
-        public int IncidentTypeId { get; set; }
+        public int? IncidentTypeId { get; set; }
 
         [Required(ErrorMessage = "Description is required")]
         [StringLength(1000, MinimumLength = 10, ErrorMessage = "Description must be between 10 and 1000 characters")]

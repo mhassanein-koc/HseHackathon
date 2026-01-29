@@ -8,5 +8,5 @@ public class ApplicationUser
     public string Department { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public DateTime CreatedDate { get; set; } = DateTime.UtcNow;
-    public ICollection<Incident> Reports { get; set; } = new List<Incident>();
+    // removed Reports navigation to Incident to decouple users from incidents
 }

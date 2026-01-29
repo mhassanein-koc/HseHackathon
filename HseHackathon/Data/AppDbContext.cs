@@ -19,12 +19,10 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         modelBuilder.Entity<Incident>()
             .HasOne(i => i.IncidentType)
             .WithMany(it => it.Incidents)
-            .HasForeignKey(i => i.IncidentTypeId);
+            .HasForeignKey(i => i.IncidentTypeId)
+            .IsRequired(false);
 
-        modelBuilder.Entity<Incident>()
-            .HasOne(i => i.ReportedByUser)
-            .WithMany(u => u.Reports)
-            .HasForeignKey(i => i.ReportedByUserId);
+        // Removed relation between Incident and ApplicationUser (no longer tracking reporter FK)
 
         modelBuilder.Entity<IncidentPhoto>()
             .HasOne(ip => ip.Incident)

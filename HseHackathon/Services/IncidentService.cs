@@ -20,7 +20,6 @@ public class IncidentService
     {
         return await _context.Incidents
             .Include(i => i.IncidentType)
-            .Include(i => i.ReportedByUser)
             .OrderByDescending(i => i.CreatedDate)
             .ToListAsync();
     }
@@ -32,7 +31,6 @@ public class IncidentService
     {
         return await _context.Incidents
             .Include(i => i.IncidentType)
-            .Include(i => i.ReportedByUser)
             .FirstOrDefaultAsync(i => i.Id == id);
     }
 
@@ -101,7 +99,6 @@ public class IncidentService
     {
         return await _context.Incidents
             .Include(i => i.IncidentType)
-            .Include(i => i.ReportedByUser)
             .Where(i => i.Status == status)
             .OrderByDescending(i => i.CreatedDate)
             .ToListAsync();
@@ -110,13 +107,5 @@ public class IncidentService
     /// <summary>
     /// Get incidents reported by a specific user
     /// </summary>
-    public async Task<List<Incident>> GetIncidentsByUserAsync(Guid userId)
-    {
-        return await _context.Incidents
-            .Include(i => i.IncidentType)
-            .Include(i => i.ReportedByUser)
-            .Where(i => i.ReportedByUserId == userId)
-            .OrderByDescending(i => i.CreatedDate)
-            .ToListAsync();
-    }
+    // Removed GetIncidentsByUserAsync — incidents are no longer linked to users
 }

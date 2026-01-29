@@ -158,7 +158,7 @@
                                 <small>@(incident.Description.Length > 50 ? incident.Description.Substring(0, 50) + "..." : incident.Description)</small>
                             </td>
                             <td>
-                                <small>@incident.ReportedByUser?.FullName</small>
+                                <small class="text-muted">—</small>
                             </td>
                             <td>
                                 @switch (incident.Status)
@@ -245,7 +245,7 @@
                 i.Status.ToString() == selectedStatus;
             
             var matchesType = string.IsNullOrEmpty(selectedIncidentType) || 
-                i.IncidentTypeId.ToString() == selectedIncidentType;
+                (i.IncidentTypeId?.ToString() ?? string.Empty) == selectedIncidentType;
 
             return matchesSearch && matchesStatus && matchesType;
         }).ToList();

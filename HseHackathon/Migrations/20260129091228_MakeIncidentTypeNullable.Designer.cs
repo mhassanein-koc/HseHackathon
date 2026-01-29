@@ -4,6 +4,7 @@ using HseHackathon.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HseHackathon.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260129091228_MakeIncidentTypeNullable")]
+    partial class MakeIncidentTypeNullable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -103,6 +106,9 @@ namespace HseHackathon.Migrations
                     b.Property<string>("PhotoUrl")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<Guid>("ReportedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -112,6 +118,8 @@ namespace HseHackathon.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("IncidentTypeId");
+
+                    b.HasIndex("ReportedByUserId");
 
                     b.ToTable("Incidents");
                 });
@@ -204,7 +212,15 @@ namespace HseHackathon.Migrations
                         .WithMany("Incidents")
                         .HasForeignKey("IncidentTypeId");
 
+                    b.HasOne("HseHackathon.Entities.ApplicationUser", "ReportedByUser")
+                        .WithMany("Reports")
+                        .HasForeignKey("ReportedByUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("IncidentType");
+
+                    b.Navigation("ReportedByUser");
                 });
 
             modelBuilder.Entity("HseHackathon.Entities.IncidentPhoto", b =>
@@ -216,6 +232,11 @@ namespace HseHackathon.Migrations
                         .IsRequired();
 
                     b.Navigation("Incident");
+                });
+
+            modelBuilder.Entity("HseHackathon.Entities.ApplicationUser", b =>
+                {
+                    b.Navigation("Reports");
                 });
 
             modelBuilder.Entity("HseHackathon.Entities.IncidentType", b =>
