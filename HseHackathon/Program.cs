@@ -1,5 +1,6 @@
 using HseHackathon.Components;
 using HseHackathon.Data;
+using HseHackathon.Services;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +14,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+// Register services for dependency injection
+builder.Services.AddScoped<IncidentService>();
+builder.Services.AddScoped<IncidentTypeService>();
+builder.Services.AddScoped<UserService>();
+builder.Services.AddScoped<FileUploadService>();
 
 var app = builder.Build();
 
